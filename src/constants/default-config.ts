@@ -2,9 +2,9 @@ import { BudgetConfig } from "@/types/budget";
 
 export const DEFAULT_BUDGET_CONFIG: BudgetConfig = {
   days: 30,
-  minAmount: 10,
-  maxAmount: 100,
-  maxTotal: 1500,
+  minAmount: 20000,
+  maxAmount: 100000,
+  maxTotal: 1500000,
 };
 
 export const MIN_DAYS = 1;

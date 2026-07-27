@@ -124,9 +124,9 @@ export function ConfigForm({ config, onGenerate, onReset }: ConfigFormProps) {
               </label>
               <Input
                 type="number"
-                step="1"
+                step="1000"
                 min={0}
-                placeholder="e.g. 10"
+                placeholder="e.g. 20000"
                 {...register("minAmount", { valueAsNumber: true })}
                 className={
                   errors.minAmount ? "border-destructive focus-visible:ring-destructive" : ""
@@ -147,9 +147,9 @@ export function ConfigForm({ config, onGenerate, onReset }: ConfigFormProps) {
               </label>
               <Input
                 type="number"
-                step="1"
+                step="1000"
                 min={0}
-                placeholder="e.g. 100"
+                placeholder="e.g. 100000"
                 {...register("maxAmount", { valueAsNumber: true })}
                 className={
                   errors.maxAmount ? "border-destructive focus-visible:ring-destructive" : ""
@@ -170,9 +170,9 @@ export function ConfigForm({ config, onGenerate, onReset }: ConfigFormProps) {
               </label>
               <Input
                 type="number"
-                step="1"
+                step="1000"
                 min={0}
-                placeholder="e.g. 1500"
+                placeholder="e.g. 1500000"
                 {...register("maxTotal", { valueAsNumber: true })}
                 className={
                   errors.maxTotal ? "border-destructive focus-visible:ring-destructive" : ""

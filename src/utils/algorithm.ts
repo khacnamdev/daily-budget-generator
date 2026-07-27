@@ -33,12 +33,15 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
     );
   }
 
+  const STEP = minAmount >= 1000 || maxAmount >= 1000 ? 1000 : 1;
+  const roundToStep = (val: number, step: number) => Math.round(val / step) * step;
+
   // 2. Determine target sum
   // Target sum between absolute min required and the upper theoretical cap min(maxTotal, days * maxAmount)
   const maxPossibleSum = Math.min(maxTotal, days * maxAmount);
   // Pick a natural target total (e.g. 75% to 98% of max possible sum, but at least absolute min)
   const fillRatio = 0.75 + Math.random() * 0.23; // between 0.75 and 0.98
-  const targetSum = Math.round(absoluteMinRequired + (maxPossibleSum - absoluteMinRequired) * fillRatio);
+  const targetSum = roundToStep(absoluteMinRequired + (maxPossibleSum - absoluteMinRequired) * fillRatio, STEP);
 
   const results: number[] = [];
   let currentRemaining = targetSum;
@@ -58,7 +61,7 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
 
     if (minForCurrent > maxForCurrent) {
       // Fallback safeguard in case of precision edge cases
-      const roundedMin = Math.round(minForCurrent);
+      const roundedMin = roundToStep(minForCurrent, STEP);
       results.push(roundedMin);
       currentRemaining -= roundedMin;
       continue;
@@ -79,9 +82,13 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
     // Blend sampledVal towards average to smooth out extremes while maintaining variance
     sampledVal = sampledVal * 0.4 + mean * 0.6;
 
-    // Ensure strict bounding and integer value
-    sampledVal = Math.max(minForCurrent, Math.min(maxForCurrent, sampledVal));
-    sampledVal = Math.round(sampledVal);
+    // Ensure strict bounding and step value
+    const boundedMin = Math.ceil(minForCurrent / STEP) * STEP;
+    const boundedMax = Math.floor(maxForCurrent / STEP) * STEP;
+    sampledVal = roundToStep(sampledVal, STEP);
+    if (boundedMin <= boundedMax) {
+      sampledVal = Math.max(boundedMin, Math.min(boundedMax, sampledVal));
+    }
 
     results.push(sampledVal);
     currentRemaining -= sampledVal;
@@ -89,41 +96,41 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
 
   // 3. Post-process residual difference if any
   const sumGenerated = results.reduce((acc, val) => acc + val, 0);
-  let diff = Math.round(targetSum - sumGenerated);
+  let diff = roundToStep(targetSum - sumGenerated, STEP);
 
   // Scatter residual difference across random indices
   let attempt = 0;
-  while (Math.abs(diff) >= 1 && attempt < 100) {
+  while (Math.abs(diff) >= STEP && attempt < 100) {
     attempt++;
     const randomIndex = Math.floor(Math.random() * days);
-    const step = diff > 0 ? 1 : -1;
-    const newVal = results[randomIndex] + step;
+    const stepDelta = diff > 0 ? STEP : -STEP;
+    const newVal = results[randomIndex] + stepDelta;
 
     if (newVal >= minAmount && newVal <= maxAmount) {
       results[randomIndex] = newVal;
-      diff -= step;
+      diff -= stepDelta;
     }
   }
 
   // Final check: guarantee total never exceeds maxTotal
   const finalTotal = results.reduce((a, b) => a + b, 0);
   if (finalTotal > maxTotal) {
-    let excess = Math.round(finalTotal - maxTotal);
+    let excess = roundToStep(finalTotal - maxTotal, STEP);
     for (let i = 0; i < days && excess > 0; i++) {
       const reducible = results[i] - minAmount;
-      if (reducible > 0) {
-        const sub = Math.min(reducible, excess);
+      if (reducible >= STEP) {
+        const sub = Math.min(Math.floor(reducible / STEP) * STEP, excess);
         results[i] -= sub;
         excess -= sub;
       }
     }
   }
 
-  // Return formatted BudgetItem list with integer amounts
+  // Return formatted BudgetItem list with rounded amounts
   return results.map((val, idx) => ({
     no: idx + 1,
     day: idx + 1,
     dayLabel: `Day ${idx + 1}`,
-    amount: Math.round(val),
+    amount: roundToStep(val, STEP),
   }));
 }

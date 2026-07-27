@@ -33,8 +33,9 @@ export function InlineEditCell({
     setIsEditing(false);
     const parsed = parseInt(localVal, 10);
     if (!isNaN(parsed) && parsed >= 0) {
-      onSave(rowIndex, Math.round(parsed));
-      setLocalVal(Math.round(parsed).toString());
+      const finalVal = parsed >= 1000 ? Math.round(parsed / 1000) * 1000 : Math.round(parsed);
+      onSave(rowIndex, finalVal);
+      setLocalVal(finalVal.toString());
     } else {
       setLocalVal(Math.round(value).toString());
     }
@@ -53,14 +54,15 @@ export function InlineEditCell({
     <div className="relative flex items-center justify-end">
       <Input
         type="number"
-        step="1"
+        step="1000"
         value={localVal}
         onFocus={() => setIsEditing(true)}
         onChange={(e) => {
           setLocalVal(e.target.value);
           const parsed = parseInt(e.target.value, 10);
           if (!isNaN(parsed) && parsed >= 0) {
-            onSave(rowIndex, Math.round(parsed));
+            const finalVal = parsed >= 1000 ? Math.round(parsed / 1000) * 1000 : Math.round(parsed);
+            onSave(rowIndex, finalVal);
           }
         }}
         onBlur={handleBlur}
