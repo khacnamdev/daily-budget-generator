@@ -1,104 +1,160 @@
-# Engineering Template
+# Daily Budget Generator 🎲💰
 
-A production-grade, highly reusable GitHub Repository Template designed as a baseline configuration for modern JavaScript and TypeScript applications.
-
-## 🚀 Purpose
-
-This repository standardizes and streamlines bootstrapping for multiple JavaScript/TypeScript stacks:
-- **React Native** (Mobile application development)
-- **React** (Single Page Applications)
-- **Next.js** (Full-stack SSR web applications)
-- **NestJS** (Enterprise-grade backend APIs)
-- **Node.js** & **Express.js** (Microservices and REST APIs)
-
-It is pre-configured with industry-standard tooling, CI/CD pipelines, documentation templates, developer guidelines, and AI agent instructions.
+A modern, production-ready web application built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**, **Tailwind CSS v4**, and **shadcn/ui**. It generates natural random daily amount distributions based on user constraints and provides an interactive editable data table, statistics dashboard, Excel/CSV export and import, local storage state persistence, and generation history.
 
 ---
 
-## 📦 Directory Structure
+## 🌟 Key Features
 
-```text
-├── .github/                 # GitHub specific configurations
-│   ├── workflows/           # CI/CD, branch protection, promotion workflows
-│   ├── ISSUE_TEMPLATE/      # Structured issue forms (bugs, features)
-│   ├── CODEOWNERS           # Reviews assignments
-│   ├── dependabot.yml       # Weekly dependency updates schedules
-│   └── PULL_REQUEST_TEMPLATE.md
-│
-├── .agent/                  # AI Development Guidelines & Workflows
-│   ├── rules/               # Architecture and coding rules
-│   ├── skills/              # Prompts/tasks for debugging, code reviews
-│   └── workflows/           # Standard checklists for bug fixes and features
-│
-├── docs/                    # Extensive technical documentation
-│   ├── architecture/        # High-level architecture and system design
-│   ├── decisions/           # Architecture Decision Records (ADRs)
-│   ├── deployment/          # Guides on deployment patterns (Web & Mobile)
-│   └── troubleshooting/     # Runbooks and common issues resolutions
-│
-├── scripts/                 # Automation scripts (setup, release prep)
-│   ├── setup.sh
-│   └── release.sh
-│
-├── .editorconfig            # Editor layout configuration
-├── .gitignore               # Multi-framework exclusions
-├── .nvmrc                   # Project target Node version
-├── .prettierrc              # Custom prettier config
-├── eslint.config.js         # ESLint Flat configuration
-├── .env.example             # Base configuration environment template
-│
-├── AGENTS.md                # How to leverage AI Agents with this repo
-├── DEVELOPMENT.md           # Instructions on local development setup
-├── CONTRIBUTING.md          # Branching, commits, and review processes
-├── SECURITY.md              # Disclosures and security report policy
-├── CHANGELOG.md             # Automated release logs
+- **Dynamic Configuration Form**:
+  - Days (1–31)
+  - Minimum Amount ($)
+  - Maximum Amount ($)
+  - Maximum Total ($)
+  - Live validation rules powered by **Zod** and **React Hook Form**.
+
+- **Optimized Random Generation Algorithm**:
+  - Dynamic bounded sampling mathematically guarantees values stay within $[Min, Max]$.
+  - Total sum **NEVER** exceeds Maximum Total.
+  - Centered sampling around remaining average prevents "the final day penalty" (where the last item gets squeezed).
+  - Handles impossible constraint configurations gracefully with clear error messages.
+
+- **Editable Data Table**:
+  - Built with **TanStack Table v8**.
+  - Direct inline cell editing for amounts with instant recalculation of total and remaining budget.
+  - Real-time constraint validation highlights and export locking on invalid state.
+  - Search filter by day label or number.
+  - Column sorting by Day and Amount.
+  - Customizable pagination (10, 20, 50, 100 rows per page).
+
+- **Statistics Dashboard**:
+  - 6 Animated Stat Widgets: Number of Days, Generated Total, Remaining Amount, Average Amount, Min Amount, Max Amount.
+  - Animated Budget Utilization Progress Bar.
+
+- **Full Export & Import Options**:
+  - **Excel Export (.xlsx)**: Professional report styled with blue headers (`#1E40AF`), cell borders, currency formatting (`$#,##0.00`), frozen header pane, auto column width, and timestamp footer.
+  - **CSV Export (.csv)**: Clean structured CSV.
+  - **Excel Import (.xlsx)**: Drag & drop Excel file parser that populates table rows, extracts config, and recalculates budget metrics automatically.
+  - **Copy Table**: Copies tab-separated data formatted for spreadsheets.
+  - **Print**: Dedicated print media layout activated via `window.print()`.
+
+- **History Management & Local Storage Persistence**:
+  - Tracks generation history snapshots with reload, delete, and individual record export options.
+  - Auto-saves configuration, table state, history logs, and theme preferences to LocalStorage.
+
+- **Theme & UI Excellence**:
+  - Modern Glassmorphism aesthetic with Framer Motion animations.
+  - Support for **Light**, **Dark**, and **System** themes via `next-themes`.
+
+---
+
+## 🏗️ Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **UI Library**: React 19
+- **Language**: TypeScript (Strict Mode)
+- **Styling**: Tailwind CSS v4 + shadcn/ui
+- **Forms & Validation**: React Hook Form + Zod
+- **Data Table**: TanStack Table v8
+- **Excel & CSV Engine**: ExcelJS & FileSaver
+- **Animations**: Framer Motion
+- **Icons & Components**: Lucide React + Radix UI
+- **Notifications**: Sonner
+- **Theme**: next-themes
+- **Testing**: Vitest
+
+---
+
+## 📁 Project Structure
+
+```
+.
+├── app/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── globals.css
+│   └── providers.tsx
+├── src/
+│   ├── types/
+│   │   └── budget.ts
+│   ├── constants/
+│   │   └── default-config.ts
+│   ├── utils/
+│   │   ├── algorithm.ts         # Math-bounded random generation algorithm
+│   │   ├── excel.ts             # ExcelJS import/export service
+│   │   ├── csv.ts               # CSV export & copy text generator
+│   │   ├── formatting.ts        # Currency and date formatters
+│   │   └── storage.ts           # LocalStorage wrapper
+│   ├── hooks/
+│   │   ├── use-budget-store.ts  # Central budget store hook
+│   │   └── use-local-storage.ts
+│   ├── features/
+│   │   ├── config/
+│   │   │   └── config-form.tsx  # Parameter configuration form
+│   │   ├── table/
+│   │   │   ├── budget-table.tsx # TanStack table component
+│   │   │   └── inline-edit-cell.tsx
+│   │   ├── stats/
+│   │   │   ├── stats-dashboard.tsx # Animated stat cards
+│   │   │   └── stat-card.tsx
+│   │   ├── history/
+│   │   │   ├── history-drawer.tsx # Generation history modal
+│   │   │   └── history-item.tsx
+│   │   └── import-export/
+│   │       ├── export-actions.tsx # Export/Import toolbar buttons
+│   │       └── import-modal.tsx  # Drag & drop Excel upload dialog
+│   └── components/
+│       ├── ui/                  # Button, Input, Card, Dialog, Badge, Select, etc.
+│       ├── navbar.tsx           # Navigation header bar
+│       ├── theme-toggle.tsx     # Theme switcher
+│       └── print-layout.tsx     # Hidden printable layout
 └── README.md
 ```
 
 ---
 
-## 🛠️ Tech Stack & Standards
+## 🚀 Getting Started
 
-- **Runtime**: [Node.js (LTS)](file:///.nvmrc)
-- **Package Manager**: [pnpm (v9+)](https://pnpm.io)
-- **Language**: TypeScript First
-- **Linter**: [ESLint (Flat Config)](file:///eslint.config.js)
-- **Formatter**: [Prettier](file:///.prettierrc)
-- **Quality Checks**: Automated type checking, testing, and linting on PRs
-- **Version Control**: Semantic Versioning & Conventional Commits
+### Prerequisites
 
----
+- Node.js >= 20.0.0
+- pnpm >= 9.0.0
 
-## 🎯 How to Use This Template
+### Installation
 
-### 1. Instantiate the Repository
-Click the **"Use this template"** button at the top of the GitHub page. Select **"Create a new repository"**, set your new repository name, and clone it.
-
-### 2. Run the Setup Script
-Run the automated environment setup script to configure local files, git settings, and verify system dependencies:
 ```bash
-chmod +x scripts/setup.sh
-./scripts/setup.sh
+pnpm install
 ```
 
-### 3. Initialize Your Chosen Stack
-After instantiating this template, clean up or modify configuration folders depending on the specific stack you are building:
-- **NestJS/Express**: Initialize your source files inside `src/`.
-- **Next.js/React**: Clean workspace and run your framework setup (`pnpm dlx create-next-app@latest .`).
-- **React Native**: Set up your React Native structure (or run `npx react-native@latest init`). Make sure to restore the `.github/` and `.agent/` folders to your root directory.
+### Run Development Server
+
+```bash
+pnpm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Run Tests
+
+```bash
+pnpm run test
+```
+
+### Type Check & Build
+
+```bash
+pnpm run typecheck
+pnpm run build
+```
 
 ---
 
-## 🤖 AI-Assisted Development
+## 📐 Random Generation Algorithm Explanation
 
-This repository contains AI instruction directories (`.agent/`) specifying styles, patterns, and workflows. AI assistants (such as Cursor, GitHub Copilot, or Gemini) will automatically discover these configurations to produce highly context-aware code matching this template's patterns.
-Read [AGENTS.md](file:///AGENTS.md) to learn how to integrate this into your workflow.
+For $N$ days with bounds $[Min, Max]$ and budget cap $MaxTotal$:
 
----
-
-## 🛡️ Guidelines and Contributing
-
-Please refer to the following documentation files to align with repository engineering standards:
-* [DEVELOPMENT.md](file:///DEVELOPMENT.md) - Project setup, engines, and tools guidelines.
-* [CONTRIBUTING.md](file:///CONTRIBUTING.md) - Branch strategy, commits rules, and PR guidelines.
-* [SECURITY.md](file:///SECURITY.md) - Vulnerabilities disclosures and security guidelines.
+1. **Feasibility Pre-check**: Verifies that $N \times Min \le MaxTotal$.
+2. **Dynamic Feasible Sampling**: For day $i \in [1..N]$ with remaining days $K$ and remaining target sum $R$:
+   - $lower\_bound = \max(Min, R - (K - 1) \times Max)$
+   - $upper\_bound = \min(Max, R - (K - 1) \times Min)$
+3. **Centered Jittering**: Random samples are centered around the expected remaining average $mean = R / K$. This eliminates structural bias towards early entries and prevents the final entries from being artificially squished.
