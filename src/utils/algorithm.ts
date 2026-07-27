@@ -37,19 +37,17 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
   const roundToStep = (val: number, step: number) => Math.round(val / step) * step;
 
   // 2. Determine target sum
-  // Target sum between absolute min required and the upper theoretical cap min(maxTotal, days * maxAmount)
   const maxPossibleSum = Math.min(maxTotal, days * maxAmount);
-  // Pick a natural target total (e.g. 75% to 98% of max possible sum, but at least absolute min)
-  const fillRatio = 0.75 + Math.random() * 0.23; // between 0.75 and 0.98
+  const fillRatio = maxPossibleSum > absoluteMinRequired ? 0.3 + Math.random() * 0.6 : 1;
   const targetSum = roundToStep(absoluteMinRequired + (maxPossibleSum - absoluteMinRequired) * fillRatio, STEP);
 
   const results: number[] = [];
   let currentRemaining = targetSum;
+  const usedFreqMap = new Map<number, number>();
 
   for (let i = 0; i < days; i++) {
     const remainingDays = days - i;
 
-    // Strict mathematical bounds for the current slot to ensure all remaining slots can be satisfied
     const minForCurrent = Math.max(
       minAmount,
       currentRemaining - (remainingDays - 1) * maxAmount
@@ -59,38 +57,38 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
       currentRemaining - (remainingDays - 1) * minAmount
     );
 
-    if (minForCurrent > maxForCurrent) {
-      // Fallback safeguard in case of precision edge cases
-      const roundedMin = roundToStep(minForCurrent, STEP);
-      results.push(roundedMin);
-      currentRemaining -= roundedMin;
+    const boundedMin = Math.ceil(minForCurrent / STEP) * STEP;
+    const boundedMax = Math.floor(maxForCurrent / STEP) * STEP;
+
+    if (boundedMin >= boundedMax) {
+      const val = boundedMin;
+      results.push(val);
+      usedFreqMap.set(val, (usedFreqMap.get(val) || 0) + 1);
+      currentRemaining -= val;
       continue;
     }
 
-    // Expected mean for remaining days
-    const mean = currentRemaining / remainingDays;
+    const stepsCount = Math.floor((boundedMax - boundedMin) / STEP);
 
-    // Triangular / Centered random sample around mean within [minForCurrent, maxForCurrent]
-    const u1 = Math.random();
-    const u2 = Math.random();
-    const centeredRandom = (u1 + u2) / 2; // Triangular distribution around 0.5
+    // Build candidate pool prioritising unused / least frequently used values
+    const candidates: number[] = [];
+    let minFreq = Infinity;
 
-    // Map centered random to range around mean
-    const rangeSpan = maxForCurrent - minForCurrent;
-    let sampledVal = minForCurrent + centeredRandom * rangeSpan;
-
-    // Blend sampledVal towards average to smooth out extremes while maintaining variance
-    sampledVal = sampledVal * 0.4 + mean * 0.6;
-
-    // Ensure strict bounding and step value
-    const boundedMin = Math.ceil(minForCurrent / STEP) * STEP;
-    const boundedMax = Math.floor(maxForCurrent / STEP) * STEP;
-    sampledVal = roundToStep(sampledVal, STEP);
-    if (boundedMin <= boundedMax) {
-      sampledVal = Math.max(boundedMin, Math.min(boundedMax, sampledVal));
+    for (let s = 0; s <= stepsCount; s++) {
+      const candidateVal = boundedMin + s * STEP;
+      const freq = usedFreqMap.get(candidateVal) || 0;
+      if (freq < minFreq) {
+        minFreq = freq;
+        candidates.length = 0;
+        candidates.push(candidateVal);
+      } else if (freq === minFreq) {
+        candidates.push(candidateVal);
+      }
     }
 
+    const sampledVal = candidates[Math.floor(Math.random() * candidates.length)];
     results.push(sampledVal);
+    usedFreqMap.set(sampledVal, (usedFreqMap.get(sampledVal) || 0) + 1);
     currentRemaining -= sampledVal;
   }
 
@@ -98,9 +96,8 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
   const sumGenerated = results.reduce((acc, val) => acc + val, 0);
   let diff = roundToStep(targetSum - sumGenerated, STEP);
 
-  // Scatter residual difference across random indices
   let attempt = 0;
-  while (Math.abs(diff) >= STEP && attempt < 100) {
+  while (Math.abs(diff) >= STEP && attempt < 300) {
     attempt++;
     const randomIndex = Math.floor(Math.random() * days);
     const stepDelta = diff > 0 ? STEP : -STEP;
@@ -110,6 +107,60 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
       results[randomIndex] = newVal;
       diff -= stepDelta;
     }
+  }
+
+  // 4. Deduplication Pass: reduce duplicates to 0 or 1-2 max if range permits
+  let dupPassAttempts = 0;
+  while (dupPassAttempts < 300) {
+    dupPassAttempts++;
+    const freq = new Map<number, number>();
+    for (const val of results) {
+      freq.set(val, (freq.get(val) || 0) + 1);
+    }
+
+    let targetDupVal: number | null = null;
+    for (const [val, count] of freq.entries()) {
+      if (count > 1) {
+        targetDupVal = val;
+        break;
+      }
+    }
+
+    if (targetDupVal === null) break;
+
+    const i = results.findIndex((v) => v === targetDupVal);
+    if (i === -1) break;
+
+    let fixed = false;
+    for (let s = 1; s <= 50 && !fixed; s++) {
+      for (const sign of [1, -1]) {
+        const delta = sign * s * STEP;
+        const newIVal = results[i] + delta;
+        if (newIVal < minAmount || newIVal > maxAmount) continue;
+
+        const newIFreq = freq.get(newIVal) || 0;
+        if (newIFreq >= (freq.get(targetDupVal) || 0) - 1) continue;
+
+        for (let j = 0; j < results.length; j++) {
+          if (i === j) continue;
+          const newJVal = results[j] - delta;
+          if (newJVal < minAmount || newJVal > maxAmount) continue;
+
+          const oldJVal = results[j];
+          const oldJFreq = freq.get(oldJVal) || 0;
+          const newJFreq = (freq.get(newJVal) || 0) + (newJVal === newIVal ? 1 : 0);
+
+          if (newJFreq < oldJFreq) {
+            results[i] = newIVal;
+            results[j] = newJVal;
+            fixed = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!fixed) break;
   }
 
   // Final check: guarantee total never exceeds maxTotal
@@ -124,6 +175,12 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
         excess -= sub;
       }
     }
+  }
+
+  // 5. Fisher-Yates Shuffle
+  for (let i = results.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [results[i], results[j]] = [results[j], results[i]];
   }
 
   // Return formatted BudgetItem list with rounded amounts
