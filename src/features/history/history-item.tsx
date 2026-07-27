@@ -3,7 +3,7 @@
 import React from "react";
 import { History, RotateCcw, Trash2, Download } from "lucide-react";
 import { BudgetHistoryRecord } from "@/types/budget";
-import { formatCurrency, formatDateTime } from "@/utils/formatting";
+import { formatCurrency, formatDateTime, getMonthName } from "@/utils/formatting";
 import { Button } from "@/components/ui/button";
 import { exportToExcel } from "@/utils/excel";
 import { toast } from "sonner";
@@ -25,6 +25,8 @@ export function HistoryItem({ record, onReload, onDelete }: HistoryItemProps) {
     }
   };
 
+  const monthName = getMonthName(record.config.month);
+
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 transition-all hover:bg-muted/50 hover:shadow-sm">
       <div className="flex items-center justify-between">
@@ -34,26 +36,32 @@ export function HistoryItem({ record, onReload, onDelete }: HistoryItemProps) {
         </div>
 
         <span className="text-sm font-bold text-primary">
-          {formatCurrency(record.totalAmount)}
+          {formatCurrency(record.totalAmount, record.config.currency)}
         </span>
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground bg-background/60 rounded-lg p-2.5">
         <div>
-          <span className="block text-[10px] uppercase">Days</span>
-          <span className="font-semibold text-foreground">{record.config.days}</span>
+          <span className="block text-[10px] uppercase">Period</span>
+          <span className="font-semibold text-foreground">
+            {monthName} {record.config.year}
+          </span>
         </div>
         <div>
-          <span className="block text-[10px] uppercase">Min</span>
-          <span className="font-semibold text-foreground">${record.config.minAmount}</span>
+          <span className="block text-[10px] uppercase">Currency</span>
+          <span className="font-semibold text-foreground">{record.config.currency}</span>
         </div>
         <div>
-          <span className="block text-[10px] uppercase">Max</span>
-          <span className="font-semibold text-foreground">${record.config.maxAmount}</span>
+          <span className="block text-[10px] uppercase">Min / Max</span>
+          <span className="font-semibold text-foreground">
+            {formatCurrency(record.config.minAmount, record.config.currency)} - {formatCurrency(record.config.maxAmount, record.config.currency)}
+          </span>
         </div>
         <div>
           <span className="block text-[10px] uppercase">Max Total</span>
-          <span className="font-semibold text-foreground">${record.config.maxTotal}</span>
+          <span className="font-semibold text-foreground">
+            {formatCurrency(record.config.maxTotal, record.config.currency)}
+          </span>
         </div>
       </div>
 

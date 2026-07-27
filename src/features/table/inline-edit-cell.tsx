@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { CurrencyCode } from "@/types/budget";
 import { cn } from "@/lib/utils";
 
 interface InlineEditCellProps {
@@ -9,6 +10,7 @@ interface InlineEditCellProps {
   rowIndex: number;
   minAmount: number;
   maxAmount: number;
+  currency: CurrencyCode;
   onSave: (rowIndex: number, newAmount: number) => void;
 }
 
@@ -65,7 +67,7 @@ export function InlineEditCell({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         className={cn(
-          "h-8 w-32 text-right text-sm font-semibold transition-all duration-150",
+          "h-8 w-36 text-right text-sm font-semibold transition-all duration-150",
           isOutOfBounds
             ? "border-amber-500 bg-amber-500/10 text-amber-900 focus-visible:ring-amber-500 dark:text-amber-300"
             : isEditing

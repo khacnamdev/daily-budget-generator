@@ -2,7 +2,7 @@
 
 import React from "react";
 import { BudgetConfig, BudgetItem } from "@/types/budget";
-import { formatCurrency, formatDateTime } from "@/utils/formatting";
+import { formatCurrency, formatDateTime, getMonthName } from "@/utils/formatting";
 
 interface PrintLayoutProps {
   config: BudgetConfig;
@@ -11,6 +11,7 @@ interface PrintLayoutProps {
 
 export function PrintLayout({ config, items }: PrintLayoutProps) {
   const totalSum = items.reduce((acc, curr) => acc + curr.amount, 0);
+  const monthName = getMonthName(config.month);
 
   return (
     <div className="hidden print:block print:p-6 print:text-black print:bg-white text-xs leading-normal">
@@ -29,22 +30,33 @@ export function PrintLayout({ config, items }: PrintLayoutProps) {
         <h2 className="text-sm font-bold text-blue-900 border-b border-gray-300 pb-1 mb-2">
           Configuration Constraints
         </h2>
-        <div className="grid grid-cols-4 gap-4 bg-gray-50 p-3 rounded border border-gray-200">
+        <div className="grid grid-cols-3 gap-4 bg-gray-50 p-3 rounded border border-gray-200 mb-2">
           <div>
-            <span className="block font-semibold text-gray-600">Days:</span>
-            <span>{config.days}</span>
+            <span className="block font-semibold text-gray-600">Year &amp; Month:</span>
+            <span>{monthName} {config.year}</span>
           </div>
           <div>
+            <span className="block font-semibold text-gray-600">Total Days:</span>
+            <span>{items.length}</span>
+          </div>
+          <div>
+            <span className="block font-semibold text-gray-600">Currency:</span>
+            <span>{config.currency}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 bg-gray-50 p-3 rounded border border-gray-200">
+          <div>
             <span className="block font-semibold text-gray-600">Min Amount:</span>
-            <span>{formatCurrency(config.minAmount)}</span>
+            <span>{formatCurrency(config.minAmount, config.currency)}</span>
           </div>
           <div>
             <span className="block font-semibold text-gray-600">Max Amount:</span>
-            <span>{formatCurrency(config.maxAmount)}</span>
+            <span>{formatCurrency(config.maxAmount, config.currency)}</span>
           </div>
           <div>
             <span className="block font-semibold text-gray-600">Max Total:</span>
-            <span>{formatCurrency(config.maxTotal)}</span>
+            <span>{formatCurrency(config.maxTotal, config.currency)}</span>
           </div>
         </div>
       </div>
@@ -58,7 +70,7 @@ export function PrintLayout({ config, items }: PrintLayoutProps) {
           <thead>
             <tr className="bg-blue-900 text-white font-bold text-center">
               <th className="border border-gray-300 p-2 w-16">No.</th>
-              <th className="border border-gray-300 p-2">Day</th>
+              <th className="border border-gray-300 p-2">Date</th>
               <th className="border border-gray-300 p-2 text-right">Amount</th>
             </tr>
           </thead>
@@ -66,9 +78,11 @@ export function PrintLayout({ config, items }: PrintLayoutProps) {
             {items.map((item) => (
               <tr key={item.no} className="border-b border-gray-200">
                 <td className="border border-gray-300 p-2 text-center">{item.no}</td>
-                <td className="border border-gray-300 p-2 text-center">{item.dayLabel}</td>
+                <td className="border border-gray-300 p-2 text-center font-mono">
+                  {item.dateStr || item.dayLabel}
+                </td>
                 <td className="border border-gray-300 p-2 text-right font-mono">
-                  {formatCurrency(item.amount)}
+                  {formatCurrency(item.amount, config.currency)}
                 </td>
               </tr>
             ))}
@@ -79,7 +93,7 @@ export function PrintLayout({ config, items }: PrintLayoutProps) {
                 TOTAL
               </td>
               <td className="border border-gray-300 p-2 text-right font-mono text-blue-900">
-                {formatCurrency(totalSum)}
+                {formatCurrency(totalSum, config.currency)}
               </td>
             </tr>
           </tfoot>

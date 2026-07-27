@@ -12,6 +12,7 @@ import { PrintLayout } from "@/components/print-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { BudgetConfig } from "@/types/budget";
+import { getDaysInMonth } from "@/utils/formatting";
 
 export default function DashboardPage() {
   const {
@@ -34,7 +35,8 @@ export default function DashboardPage() {
   const handleGenerate = (newConfig: BudgetConfig) => {
     try {
       generateData(newConfig);
-      toast.success(`Generated random amounts for ${newConfig.days} days!`);
+      const totalDays = getDaysInMonth(newConfig.year, newConfig.month);
+      toast.success(`Generated random amounts for ${totalDays} days!`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to generate random data.";
       toast.error(msg);

@@ -21,9 +21,10 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Dice5,
+  Calendar,
 } from "lucide-react";
 import { BudgetItem, BudgetConfig } from "@/types/budget";
-import { formatCurrency } from "@/utils/formatting";
+import { formatCurrency, getMonthName } from "@/utils/formatting";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,7 +75,7 @@ export function BudgetTable({
         ),
       },
       {
-        accessorKey: "dayLabel",
+        accessorKey: "dateStr",
         header: ({ column }) => (
           <Button
             variant="ghost"
@@ -82,7 +83,7 @@ export function BudgetTable({
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="font-semibold text-xs tracking-wider"
           >
-            Day
+            Date
             {column.getIsSorted() === "asc" ? (
               <ArrowUp className="ml-1 h-3.5 w-3.5 text-primary" />
             ) : column.getIsSorted() === "desc" ? (
@@ -93,9 +94,10 @@ export function BudgetTable({
           </Button>
         ),
         cell: (info) => (
-          <span className="font-semibold text-sm text-foreground">
-            {info.getValue<string>()}
-          </span>
+          <div className="flex items-center gap-1.5 font-semibold text-sm text-foreground">
+            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+            <span>{info.getValue<string>()}</span>
+          </div>
         ),
       },
       {
@@ -108,7 +110,7 @@ export function BudgetTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
               className="font-semibold text-xs tracking-wider"
             >
-              Amount ($)
+              Amount ({config.currency})
               {column.getIsSorted() === "asc" ? (
                 <ArrowUp className="ml-1 h-3.5 w-3.5 text-primary" />
               ) : column.getIsSorted() === "desc" ? (
@@ -128,13 +130,14 @@ export function BudgetTable({
               rowIndex={originalIndex >= 0 ? originalIndex : row.index}
               minAmount={config.minAmount}
               maxAmount={config.maxAmount}
+              currency={config.currency}
               onSave={onUpdateAmount}
             />
           );
         },
       },
     ],
-    [config.maxAmount, config.minAmount, items, onUpdateAmount]
+    [config.currency, config.maxAmount, config.minAmount, items, onUpdateAmount]
   );
 
   const table = useReactTable({
@@ -161,17 +164,24 @@ export function BudgetTable({
     return items.reduce((acc, curr) => acc + curr.amount, 0);
   }, [items]);
 
+  const monthName = getMonthName(config.month);
+
   return (
     <Card className="border-border/60 bg-card/80 shadow-lg backdrop-blur-md">
       <CardHeader className="pb-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-xl">Daily Budget Breakdown</CardTitle>
+          <div>
+            <CardTitle className="text-xl">Daily Budget Breakdown</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              {monthName} {config.year} &bull; {items.length} Daily Rows
+            </p>
+          </div>
 
           {/* Search Input */}
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search day..."
+              placeholder="Search date..."
               value={globalFilter ?? ""}
               onChange={(e) => setGlobalFilter(e.target.value)}
               className="pl-9 text-sm"
@@ -189,7 +199,7 @@ export function BudgetTable({
               No Data Generated Yet
             </h3>
             <p className="text-sm text-muted-foreground max-w-sm mb-6">
-              Configure your parameters above and click &quot;Generate Data&quot; to create a new daily budget breakdown.
+              Select your Month &amp; Year and click &quot;Generate Data&quot; to populate your calendar daily budget.
             </p>
             <Button variant="gradient" onClick={onGenerateClick} className="gap-2">
               <Dice5 className="h-4 w-4" />
@@ -241,7 +251,7 @@ export function BudgetTable({
                       TOTAL
                     </td>
                     <td className="p-3.5 text-right text-base text-primary">
-                      {formatCurrency(totalSum)}
+                      {formatCurrency(totalSum, config.currency)}
                     </td>
                   </tr>
                 </tfoot>

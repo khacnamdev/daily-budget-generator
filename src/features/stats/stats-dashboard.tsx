@@ -9,6 +9,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   AlertTriangle,
+  Globe,
 } from "lucide-react";
 import { BudgetStats, BudgetValidationResult } from "@/types/budget";
 import { formatCurrency } from "@/utils/formatting";
@@ -43,21 +44,39 @@ export function StatsDashboard({ stats, maxTotal, validation }: StatsDashboardPr
       )}
 
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {/* Number of Days */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+        {/* Selected Year & Month */}
         <StatCard
-          title="Days"
-          value={stats.days}
-          subtitle={`Configured span`}
+          title="Year & Month"
+          value={`${stats.monthName} ${stats.year}`}
+          subtitle={`${stats.days} Total Days`}
           icon={CalendarDays}
           iconColor="text-blue-500 bg-blue-500/10 dark:bg-blue-500/20"
+        />
+
+        {/* Total Days */}
+        <StatCard
+          title="Total Days"
+          value={stats.days}
+          subtitle={`Days in month`}
+          icon={CalendarDays}
+          iconColor="text-cyan-500 bg-cyan-500/10 dark:bg-cyan-500/20"
+        />
+
+        {/* Currency */}
+        <StatCard
+          title="Currency"
+          value={stats.currency}
+          subtitle={`Formatting mode`}
+          icon={Globe}
+          iconColor="text-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/20"
         />
 
         {/* Generated Total */}
         <StatCard
           title="Generated Total"
-          value={formatCurrency(stats.totalAmount)}
-          subtitle={`Max cap: ${formatCurrency(maxTotal)}`}
+          value={formatCurrency(stats.totalAmount, stats.currency)}
+          subtitle={`Max cap: ${formatCurrency(maxTotal, stats.currency)}`}
           icon={DollarSign}
           iconColor="text-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/20"
           trend={isOverBudget ? "negative" : "neutral"}
@@ -66,7 +85,7 @@ export function StatsDashboard({ stats, maxTotal, validation }: StatsDashboardPr
         {/* Remaining Amount */}
         <StatCard
           title="Remaining Budget"
-          value={formatCurrency(stats.remainingAmount)}
+          value={formatCurrency(stats.remainingAmount, stats.currency)}
           subtitle={
             isOverBudget
               ? `Exceeded limit!`
@@ -86,7 +105,7 @@ export function StatsDashboard({ stats, maxTotal, validation }: StatsDashboardPr
         {/* Average Amount */}
         <StatCard
           title="Daily Average"
-          value={formatCurrency(stats.averageAmount)}
+          value={formatCurrency(stats.averageAmount, stats.currency)}
           subtitle={`Per day target`}
           icon={TrendingUp}
           iconColor="text-purple-500 bg-purple-500/10 dark:bg-purple-500/20"
@@ -95,19 +114,19 @@ export function StatsDashboard({ stats, maxTotal, validation }: StatsDashboardPr
         {/* Min Generated */}
         <StatCard
           title="Min Generated"
-          value={formatCurrency(stats.minGenerated)}
+          value={formatCurrency(stats.minGenerated, stats.currency)}
           subtitle={`Lowest daily amount`}
           icon={ArrowDownRight}
-          iconColor="text-cyan-500 bg-cyan-500/10 dark:bg-cyan-500/20"
+          iconColor="text-teal-500 bg-teal-500/10 dark:bg-teal-500/20"
         />
 
         {/* Max Generated */}
         <StatCard
           title="Max Generated"
-          value={formatCurrency(stats.maxGenerated)}
+          value={formatCurrency(stats.maxGenerated, stats.currency)}
           subtitle={`Highest daily amount`}
           icon={ArrowUpRight}
-          iconColor="text-teal-500 bg-teal-500/10 dark:bg-teal-500/20"
+          iconColor="text-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/20"
         />
       </div>
 
@@ -125,7 +144,7 @@ export function StatsDashboard({ stats, maxTotal, validation }: StatsDashboardPr
             )}
           </span>
           <span>
-            {formatCurrency(stats.totalAmount)} / {formatCurrency(maxTotal)} ({stats.budgetUtilizationPct}%)
+            {formatCurrency(stats.totalAmount, stats.currency)} / {formatCurrency(maxTotal, stats.currency)} ({stats.budgetUtilizationPct}%)
           </span>
         </div>
         <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">

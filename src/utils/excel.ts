@@ -1,7 +1,19 @@
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import { BudgetConfig, BudgetItem } from "@/types/budget";
-import { formatDateTime, getExportFilename } from "./formatting";
+import { BudgetConfig, BudgetItem, CurrencyCode } from "@/types/budget";
+import { formatDateTime, getExportFilename, getMonthName } from "./formatting";
+
+function getExcelCurrencyFormat(currency: CurrencyCode): string {
+  switch (currency) {
+    case "VND":
+      return '"₫"#,##0';
+    case "JPY":
+      return '"¥"#,##0';
+    case "USD":
+    default:
+      return '"$"#,##0.00';
+  }
+}
 
 export async function exportToExcel(
   config: BudgetConfig,
@@ -12,8 +24,11 @@ export async function exportToExcel(
   workbook.created = new Date();
 
   const worksheet = workbook.addWorksheet("Daily Budget Report", {
-    views: [{ state: "frozen", xSplit: 0, ySplit: 9 }], // Freeze rows 1-9 so table header stays fixed
+    views: [{ state: "frozen", xSplit: 0, ySplit: 11 }], // Freeze rows above table data
   });
+
+  const currencyNumFmt = getExcelCurrencyFormat(config.currency);
+  const monthName = getMonthName(config.month);
 
   // 1. Title Row
   worksheet.mergeCells("A1:C1");
@@ -32,32 +47,37 @@ export async function exportToExcel(
   configHeader.value = "Configuration Parameters";
   configHeader.font = { name: "Arial", size: 11, bold: true, color: { argb: "FF1E40AF" } };
 
-  worksheet.addRow(["Days", config.days]);
+  worksheet.addRow(["Year", config.year]);
+  worksheet.addRow(["Month", monthName]);
+  worksheet.addRow(["Currency", config.currency]);
   worksheet.addRow(["Minimum Amount", config.minAmount]);
   worksheet.addRow(["Maximum Amount", config.maxAmount]);
   worksheet.addRow(["Maximum Total", config.maxTotal]);
 
   // Format config values
-  [4, 5, 6, 7].forEach((rowNum) => {
+  [4, 5, 6].forEach((rowNum) => {
+    worksheet.getCell(`A${rowNum}`).font = { name: "Arial", size: 10, bold: true };
+    worksheet.getCell(`B${rowNum}`).font = { name: "Arial", size: 10 };
+  });
+
+  [7, 8, 9].forEach((rowNum) => {
     const labelCell = worksheet.getCell(`A${rowNum}`);
     const valCell = worksheet.getCell(`B${rowNum}`);
     labelCell.font = { name: "Arial", size: 10, bold: true };
     valCell.font = { name: "Arial", size: 10 };
-    if (rowNum >= 5) {
-      valCell.numFmt = "$#,##0.00";
-    }
+    valCell.numFmt = currencyNumFmt;
   });
 
-  worksheet.addRow([]); // Row 8 blank
+  worksheet.addRow([]); // Row 10 blank
 
-  // 3. Main Data Table Header (Row 9)
-  const headerRow = worksheet.addRow(["No.", "Day", "Amount"]);
+  // 3. Main Data Table Header (Row 11)
+  const headerRow = worksheet.addRow(["No.", "Date", "Amount"]);
   headerRow.height = 24;
   headerRow.eachCell((cell) => {
     cell.fill = {
       type: "pattern",
       pattern: "solid",
-      fgColor: { argb: "FF1E40AF" }, // Blue header
+      fgColor: { argb: "FF1E40AF" },
     };
     cell.font = { name: "Arial", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
     cell.alignment = { horizontal: "center", vertical: "middle" };
@@ -73,24 +93,20 @@ export async function exportToExcel(
   let totalSum = 0;
   items.forEach((item) => {
     totalSum += item.amount;
-    const row = worksheet.addRow([item.no, item.dayLabel, item.amount]);
+    const row = worksheet.addRow([item.no, item.dateStr || item.dayLabel, item.amount]);
     row.height = 20;
 
-    // No.
     const cellNo = row.getCell(1);
     cellNo.alignment = { horizontal: "center", vertical: "middle" };
 
-    // Day
-    const cellDay = row.getCell(2);
-    cellDay.alignment = { horizontal: "center", vertical: "middle" };
+    const cellDate = row.getCell(2);
+    cellDate.alignment = { horizontal: "center", vertical: "middle" };
 
-    // Amount
     const cellAmount = row.getCell(3);
     cellAmount.alignment = { horizontal: "right", vertical: "middle" };
-    cellAmount.numFmt = "$#,##0.00";
+    cellAmount.numFmt = currencyNumFmt;
 
-    // Add thin borders
-    [cellNo, cellDay, cellAmount].forEach((c) => {
+    [cellNo, cellDate, cellAmount].forEach((c) => {
       c.font = { name: "Arial", size: 10 };
       c.border = {
         top: { style: "thin", color: { argb: "FFE2E8F0" } },
@@ -113,7 +129,7 @@ export async function exportToExcel(
   const totalVal = totalRow.getCell(3);
   totalVal.font = { name: "Arial", size: 11, bold: true };
   totalVal.alignment = { horizontal: "right", vertical: "middle" };
-  totalVal.numFmt = "$#,##0.00";
+  totalVal.numFmt = currencyNumFmt;
 
   [totalLabel, totalVal].forEach((c) => {
     c.fill = {
@@ -146,7 +162,6 @@ export async function exportToExcel(
     column.width = maxLength + 4;
   });
 
-  // Generate buffer and trigger download
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -169,7 +184,9 @@ export async function importFromExcel(file: File): Promise<{
   }
 
   const items: BudgetItem[] = [];
-  let extractedDays: number | undefined;
+  let extractedYear: number | undefined;
+  let extractedMonth: number | undefined;
+  let extractedCurrency: CurrencyCode | undefined;
   let extractedMin: number | undefined;
   let extractedMax: number | undefined;
   let extractedMaxTotal: number | undefined;
@@ -180,27 +197,37 @@ export async function importFromExcel(file: File): Promise<{
     const col1 = row.getCell(1).text?.trim();
     const col2 = row.getCell(2).text?.trim();
 
-    // Check config key values
-    if (col1 === "Days" && !isNaN(Number(col2))) {
-      extractedDays = Number(col2);
-    } else if (col1 === "Minimum Amount" && !isNaN(Number(col2.replace(/[^0-9.-]+/g, "")))) {
+    if (col1 === "Year" && !isNaN(Number(col2))) {
+      extractedYear = Number(col2);
+    } else if (col1 === "Month") {
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      const foundIdx = monthNames.findIndex((m) => m.toLowerCase() === col2.toLowerCase());
+      if (foundIdx >= 0) {
+        extractedMonth = foundIdx + 1;
+      }
+    } else if (col1 === "Currency" && ["USD", "VND", "JPY"].includes(col2.toUpperCase())) {
+      extractedCurrency = col2.toUpperCase() as CurrencyCode;
+    } else if (col1 === "Minimum Amount") {
       extractedMin = Number(col2.replace(/[^0-9.-]+/g, ""));
-    } else if (col1 === "Maximum Amount" && !isNaN(Number(col2.replace(/[^0-9.-]+/g, "")))) {
+    } else if (col1 === "Maximum Amount") {
       extractedMax = Number(col2.replace(/[^0-9.-]+/g, ""));
-    } else if (col1 === "Maximum Total" && !isNaN(Number(col2.replace(/[^0-9.-]+/g, "")))) {
+    } else if (col1 === "Maximum Total") {
       extractedMaxTotal = Number(col2.replace(/[^0-9.-]+/g, ""));
     }
 
-    // Detect header row
     const c1Upper = col1.toUpperCase();
     const c2Upper = col2.toUpperCase();
-    if (c1Upper.includes("NO") || c2Upper.includes("DAY")) {
+    if (c1Upper.includes("NO") || c2Upper.includes("DATE") || c2Upper.includes("DAY")) {
       tableHeaderRowIndex = rowNumber;
     }
   });
 
-  // Extract table rows after header row (or from start if simple table)
   const startRow = tableHeaderRowIndex > 0 ? tableHeaderRowIndex + 1 : 1;
+  const activeYear = extractedYear || new Date().getFullYear();
+  const activeMonth = extractedMonth || 1;
 
   worksheet.eachRow((row, rowNumber) => {
     if (rowNumber < startRow) return;
@@ -211,8 +238,7 @@ export async function importFromExcel(file: File): Promise<{
 
     if (col1 === "TOTAL" || col1.includes("Generated on")) return;
 
-    // Parse amount from col3 or col2
-    const dayLabel = col2 || `Day ${items.length + 1}`;
+    const dateVal = col2 || `${activeYear}-${String(activeMonth).padStart(2, "0")}-${String(items.length + 1).padStart(2, "0")}`;
     const rawAmt = col3 || col2;
     const amountVal = Number(rawAmt.replace(/[^0-9.-]+/g, ""));
 
@@ -220,7 +246,8 @@ export async function importFromExcel(file: File): Promise<{
       items.push({
         no: items.length + 1,
         day: items.length + 1,
-        dayLabel: dayLabel.startsWith("Day") ? dayLabel : `Day ${items.length + 1}`,
+        dateStr: dateVal,
+        dayLabel: dateVal,
         amount: Math.round(amountVal * 100) / 100,
       });
     }
@@ -232,7 +259,9 @@ export async function importFromExcel(file: File): Promise<{
 
   return {
     config: {
-      days: extractedDays || items.length,
+      year: extractedYear,
+      month: extractedMonth,
+      currency: extractedCurrency,
       minAmount: extractedMin,
       maxAmount: extractedMax,
       maxTotal: extractedMaxTotal,

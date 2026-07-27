@@ -10,6 +10,7 @@ import {
 } from "@/types/budget";
 import { DEFAULT_BUDGET_CONFIG, STORAGE_KEYS } from "@/constants/default-config";
 import { generateRandomBudgetData } from "@/utils/algorithm";
+import { getDaysInMonth, getMonthName } from "@/utils/formatting";
 import {
   getLocalStorageItem,
   setLocalStorageItem,
@@ -62,10 +63,9 @@ export function useBudgetStore() {
     (customConfig?: BudgetConfig) => {
       const activeConfig = customConfig || config;
       const newItems = generateRandomBudgetData(activeConfig);
-      
+
       const totalSum = newItems.reduce((acc, curr) => acc + curr.amount, 0);
 
-      // Create new history record
       const historyRecord: BudgetHistoryRecord = {
         id: `hist_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         timestamp: new Date().toISOString(),
@@ -125,7 +125,9 @@ export function useBudgetStore() {
   const importData = useCallback(
     (importedConfig: Partial<BudgetConfig>, importedItems: BudgetItem[]) => {
       const mergedConfig: BudgetConfig = {
-        days: importedConfig.days || importedItems.length || config.days,
+        year: importedConfig.year || config.year,
+        month: importedConfig.month || config.month,
+        currency: importedConfig.currency || config.currency,
         minAmount: importedConfig.minAmount ?? config.minAmount,
         maxAmount: importedConfig.maxAmount ?? config.maxAmount,
         maxTotal: importedConfig.maxTotal ?? config.maxTotal,
@@ -150,9 +152,16 @@ export function useBudgetStore() {
 
   // Computed Derived Statistics & Validation
   const stats: BudgetStats = useMemo(() => {
+    const totalDays = getDaysInMonth(config.year, config.month);
+    const monthName = getMonthName(config.month);
+
     if (items.length === 0) {
       return {
-        days: config.days,
+        year: config.year,
+        month: config.month,
+        monthName,
+        days: totalDays,
+        currency: config.currency,
         totalAmount: 0,
         remainingAmount: config.maxTotal,
         averageAmount: 0,
@@ -171,7 +180,11 @@ export function useBudgetStore() {
     const budgetUtilizationPct = Math.min(100, Math.max(0, (totalAmount / config.maxTotal) * 100));
 
     return {
+      year: config.year,
+      month: config.month,
+      monthName,
       days: items.length,
+      currency: config.currency,
       totalAmount,
       remainingAmount,
       averageAmount,
@@ -179,7 +192,7 @@ export function useBudgetStore() {
       maxGenerated,
       budgetUtilizationPct: Math.round(budgetUtilizationPct * 10) / 10,
     };
-  }, [config.days, config.maxTotal, items]);
+  }, [config, items]);
 
   const validation: BudgetValidationResult = useMemo(() => {
     const errors: string[] = [];
@@ -187,7 +200,7 @@ export function useBudgetStore() {
     if (items.length > 0) {
       if (stats.totalAmount > config.maxTotal) {
         errors.push(
-          `Total generated amount ($${stats.totalAmount.toFixed(2)}) exceeds Maximum Total budget ($${config.maxTotal.toFixed(2)}) by $${(stats.totalAmount - config.maxTotal).toFixed(2)}.`
+          `Total generated amount (${stats.totalAmount}) exceeds Maximum Total budget (${config.maxTotal}).`
         );
       }
 
@@ -197,7 +210,7 @@ export function useBudgetStore() {
 
       if (outOfBoundsCount > 0) {
         errors.push(
-          `${outOfBoundsCount} day(s) have amounts outside configured Min ($${config.minAmount}) - Max ($${config.maxAmount}) bounds.`
+          `${outOfBoundsCount} day(s) have amounts outside configured Min (${config.minAmount}) - Max (${config.maxAmount}) bounds.`
         );
       }
     }

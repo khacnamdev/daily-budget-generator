@@ -62,7 +62,7 @@ export function ExportActions({
   const handleCopyTable = () => {
     if (!hasData) return;
     try {
-      const text = generateTableText(items);
+      const text = generateTableText(items, config.currency);
       navigator.clipboard.writeText(text);
       toast.success("Table data copied to clipboard!");
     } catch (err) {

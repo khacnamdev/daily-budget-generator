@@ -1,5 +1,9 @@
+export type CurrencyCode = "USD" | "VND" | "JPY";
+
 export interface BudgetConfig {
-  days: number;
+  year: number;
+  month: number; // 1 - 12
+  currency: CurrencyCode;
   minAmount: number;
   maxAmount: number;
   maxTotal: number;
@@ -8,7 +12,8 @@ export interface BudgetConfig {
 export interface BudgetItem {
   no: number;
   day: number;
-  dayLabel: string;
+  dateStr: string; // e.g. "2026-07-01"
+  dayLabel: string; // e.g. "2026-07-01"
   amount: number;
 }
 
@@ -26,7 +31,11 @@ export interface BudgetValidationResult {
 }
 
 export interface BudgetStats {
+  year: number;
+  month: number;
+  monthName: string;
   days: number;
+  currency: CurrencyCode;
   totalAmount: number;
   remainingAmount: number;
   averageAmount: number;
