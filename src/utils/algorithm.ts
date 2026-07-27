@@ -38,8 +38,7 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
   const maxPossibleSum = Math.min(maxTotal, days * maxAmount);
   // Pick a natural target total (e.g. 75% to 98% of max possible sum, but at least absolute min)
   const fillRatio = 0.75 + Math.random() * 0.23; // between 0.75 and 0.98
-  let targetSum = absoluteMinRequired + (maxPossibleSum - absoluteMinRequired) * fillRatio;
-  targetSum = Math.round(targetSum * 100) / 100;
+  const targetSum = Math.round(absoluteMinRequired + (maxPossibleSum - absoluteMinRequired) * fillRatio);
 
   const results: number[] = [];
   let currentRemaining = targetSum;
@@ -58,9 +57,10 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
     );
 
     if (minForCurrent > maxForCurrent) {
-      // Fallback safeguard in case of floating point precision edge cases
-      results.push(Math.round(minForCurrent * 100) / 100);
-      currentRemaining -= minForCurrent;
+      // Fallback safeguard in case of precision edge cases
+      const roundedMin = Math.round(minForCurrent);
+      results.push(roundedMin);
+      currentRemaining -= roundedMin;
       continue;
     }
 
@@ -68,7 +68,6 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
     const mean = currentRemaining / remainingDays;
 
     // Triangular / Centered random sample around mean within [minForCurrent, maxForCurrent]
-    // u1, u2 generate a bell-curve shape centered at 0.5
     const u1 = Math.random();
     const u2 = Math.random();
     const centeredRandom = (u1 + u2) / 2; // Triangular distribution around 0.5
@@ -80,51 +79,51 @@ export function generateRandomBudgetData(config: BudgetConfig): BudgetItem[] {
     // Blend sampledVal towards average to smooth out extremes while maintaining variance
     sampledVal = sampledVal * 0.4 + mean * 0.6;
 
-    // Ensure strict bounding
+    // Ensure strict bounding and integer value
     sampledVal = Math.max(minForCurrent, Math.min(maxForCurrent, sampledVal));
-    sampledVal = Math.round(sampledVal * 100) / 100;
+    sampledVal = Math.round(sampledVal);
 
     results.push(sampledVal);
     currentRemaining -= sampledVal;
   }
 
-  // 3. Post-process residual difference (cents) if any
+  // 3. Post-process residual difference if any
   const sumGenerated = results.reduce((acc, val) => acc + val, 0);
-  let diff = Math.round((targetSum - sumGenerated) * 100) / 100;
+  let diff = Math.round(targetSum - sumGenerated);
 
-  // Scatter tiny residual cents across random indices to ensure sum matches targetSum perfectly
+  // Scatter residual difference across random indices
   let attempt = 0;
-  while (Math.abs(diff) >= 0.01 && attempt < 100) {
+  while (Math.abs(diff) >= 1 && attempt < 100) {
     attempt++;
     const randomIndex = Math.floor(Math.random() * days);
-    const step = diff > 0 ? 0.01 : -0.01;
-    const newVal = Math.round((results[randomIndex] + step) * 100) / 100;
+    const step = diff > 0 ? 1 : -1;
+    const newVal = results[randomIndex] + step;
 
     if (newVal >= minAmount && newVal <= maxAmount) {
       results[randomIndex] = newVal;
-      diff = Math.round((diff - step) * 100) / 100;
+      diff -= step;
     }
   }
 
   // Final check: guarantee total never exceeds maxTotal
   const finalTotal = results.reduce((a, b) => a + b, 0);
   if (finalTotal > maxTotal) {
-    let excess = Math.round((finalTotal - maxTotal) * 100) / 100;
+    let excess = Math.round(finalTotal - maxTotal);
     for (let i = 0; i < days && excess > 0; i++) {
-      const reducible = Math.round((results[i] - minAmount) * 100) / 100;
+      const reducible = results[i] - minAmount;
       if (reducible > 0) {
         const sub = Math.min(reducible, excess);
-        results[i] = Math.round((results[i] - sub) * 100) / 100;
-        excess = Math.round((excess - sub) * 100) / 100;
+        results[i] -= sub;
+        excess -= sub;
       }
     }
   }
 
-  // Return formatted BudgetItem list
+  // Return formatted BudgetItem list with integer amounts
   return results.map((val, idx) => ({
     no: idx + 1,
     day: idx + 1,
     dayLabel: `Day ${idx + 1}`,
-    amount: Math.round(val * 100) / 100,
+    amount: Math.round(val),
   }));
 }

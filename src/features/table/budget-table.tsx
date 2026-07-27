@@ -108,7 +108,7 @@ export function BudgetTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
               className="font-semibold text-xs tracking-wider"
             >
-              Amount ($)
+              Amount (₫)
               {column.getIsSorted() === "asc" ? (
                 <ArrowUp className="ml-1 h-3.5 w-3.5 text-primary" />
               ) : column.getIsSorted() === "desc" ? (

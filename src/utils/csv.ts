@@ -1,6 +1,6 @@
 import { saveAs } from "file-saver";
 import { BudgetConfig, BudgetItem } from "@/types/budget";
-import { getExportFilename } from "./formatting";
+import { getExportFilename, formatCurrency } from "./formatting";
 
 export function exportToCSV(config: BudgetConfig, items: BudgetItem[]): void {
   const lines: string[] = [];
@@ -20,11 +20,11 @@ export function exportToCSV(config: BudgetConfig, items: BudgetItem[]): void {
   let totalSum = 0;
   items.forEach((item) => {
     totalSum += item.amount;
-    lines.push(`"${item.no}","${item.dayLabel}","${item.amount.toFixed(2)}"`);
+    lines.push(`"${item.no}","${item.dayLabel}","${Math.round(item.amount)}"`);
   });
 
   // Footer Total
-  lines.push(`"TOTAL","","${totalSum.toFixed(2)}"`);
+  lines.push(`"TOTAL","","${Math.round(totalSum)}"`);
 
   const csvContent = lines.join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -34,8 +34,8 @@ export function exportToCSV(config: BudgetConfig, items: BudgetItem[]): void {
 
 export function generateTableText(items: BudgetItem[]): string {
   const header = "No.\tDay\tAmount\n";
-  const rows = items.map((i) => `${i.no}\t${i.dayLabel}\t$${i.amount.toFixed(2)}`).join("\n");
+  const rows = items.map((i) => `${i.no}\t${i.dayLabel}\t${formatCurrency(i.amount)}`).join("\n");
   const totalSum = items.reduce((acc, curr) => acc + curr.amount, 0);
-  const footer = `\nTOTAL\t\t$${totalSum.toFixed(2)}`;
+  const footer = `\nTOTAL\t\t${formatCurrency(totalSum)}`;
   return header + rows + footer;
 }

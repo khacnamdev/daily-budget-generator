@@ -44,7 +44,7 @@ export async function exportToExcel(
     labelCell.font = { name: "Arial", size: 10, bold: true };
     valCell.font = { name: "Arial", size: 10 };
     if (rowNum >= 5) {
-      valCell.numFmt = "$#,##0.00";
+      valCell.numFmt = "#,##0 \"₫\"";
     }
   });
 
@@ -87,7 +87,7 @@ export async function exportToExcel(
     // Amount
     const cellAmount = row.getCell(3);
     cellAmount.alignment = { horizontal: "right", vertical: "middle" };
-    cellAmount.numFmt = "$#,##0.00";
+    cellAmount.numFmt = "#,##0 \"₫\"";
 
     // Add thin borders
     [cellNo, cellDay, cellAmount].forEach((c) => {
@@ -113,7 +113,7 @@ export async function exportToExcel(
   const totalVal = totalRow.getCell(3);
   totalVal.font = { name: "Arial", size: 11, bold: true };
   totalVal.alignment = { horizontal: "right", vertical: "middle" };
-  totalVal.numFmt = "$#,##0.00";
+  totalVal.numFmt = "#,##0 \"₫\"";
 
   [totalLabel, totalVal].forEach((c) => {
     c.fill = {
@@ -221,7 +221,7 @@ export async function importFromExcel(file: File): Promise<{
         no: items.length + 1,
         day: items.length + 1,
         dayLabel: dayLabel.startsWith("Day") ? dayLabel : `Day ${items.length + 1}`,
-        amount: Math.round(amountVal * 100) / 100,
+        amount: Math.round(amountVal),
       });
     }
   });

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BudgetConfig } from "@/types/budget";
 import { MIN_DAYS, MAX_DAYS } from "@/constants/default-config";
+import { formatCurrency } from "@/utils/formatting";
 
 const configSchema = z
   .object({
@@ -119,13 +120,13 @@ export function ConfigForm({ config, onGenerate, onReset }: ConfigFormProps) {
             {/* Minimum Amount */}
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Minimum Amount ($)
+                Minimum Amount (₫)
               </label>
               <Input
                 type="number"
-                step="0.01"
+                step="1"
                 min={0}
-                placeholder="e.g. 10.00"
+                placeholder="e.g. 10"
                 {...register("minAmount", { valueAsNumber: true })}
                 className={
                   errors.minAmount ? "border-destructive focus-visible:ring-destructive" : ""
@@ -142,13 +143,13 @@ export function ConfigForm({ config, onGenerate, onReset }: ConfigFormProps) {
             {/* Maximum Amount */}
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Maximum Amount ($)
+                Maximum Amount (₫)
               </label>
               <Input
                 type="number"
-                step="0.01"
+                step="1"
                 min={0}
-                placeholder="e.g. 100.00"
+                placeholder="e.g. 100"
                 {...register("maxAmount", { valueAsNumber: true })}
                 className={
                   errors.maxAmount ? "border-destructive focus-visible:ring-destructive" : ""
@@ -165,13 +166,13 @@ export function ConfigForm({ config, onGenerate, onReset }: ConfigFormProps) {
             {/* Maximum Total */}
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Maximum Total ($)
+                Maximum Total (₫)
               </label>
               <Input
                 type="number"
-                step="0.01"
+                step="1"
                 min={0}
-                placeholder="e.g. 1500.00"
+                placeholder="e.g. 1500"
                 {...register("maxTotal", { valueAsNumber: true })}
                 className={
                   errors.maxTotal ? "border-destructive focus-visible:ring-destructive" : ""
@@ -184,7 +185,7 @@ export function ConfigForm({ config, onGenerate, onReset }: ConfigFormProps) {
                 </p>
               ) : (
                 <p className="text-[11px] text-muted-foreground">
-                  Min required: ${requiredMinTotal.toFixed(2)}
+                  Min required: {formatCurrency(requiredMinTotal)}
                 </p>
               )}
             </div>

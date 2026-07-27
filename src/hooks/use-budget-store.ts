@@ -10,6 +10,7 @@ import {
 } from "@/types/budget";
 import { DEFAULT_BUDGET_CONFIG, STORAGE_KEYS } from "@/constants/default-config";
 import { generateRandomBudgetData } from "@/utils/algorithm";
+import { formatCurrency } from "@/utils/formatting";
 import {
   getLocalStorageItem,
   setLocalStorageItem,
@@ -70,7 +71,7 @@ export function useBudgetStore() {
         id: `hist_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         timestamp: new Date().toISOString(),
         config: { ...activeConfig },
-        totalAmount: Math.round(totalSum * 100) / 100,
+        totalAmount: Math.round(totalSum),
         items: newItems,
       };
 
@@ -89,7 +90,7 @@ export function useBudgetStore() {
       if (index >= 0 && index < updated.length) {
         updated[index] = {
           ...updated[index],
-          amount: Math.max(0, Math.round(newAmount * 100) / 100),
+          amount: Math.max(0, Math.round(newAmount)),
         };
         setItems(updated);
       }
@@ -139,7 +140,7 @@ export function useBudgetStore() {
         id: `import_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         timestamp: new Date().toISOString(),
         config: mergedConfig,
-        totalAmount: Math.round(totalSum * 100) / 100,
+        totalAmount: Math.round(totalSum),
         items: importedItems,
       };
 
@@ -162,9 +163,9 @@ export function useBudgetStore() {
       };
     }
 
-    const totalAmount = Math.round(items.reduce((sum, item) => sum + item.amount, 0) * 100) / 100;
-    const remainingAmount = Math.round((config.maxTotal - totalAmount) * 100) / 100;
-    const averageAmount = Math.round((totalAmount / items.length) * 100) / 100;
+    const totalAmount = Math.round(items.reduce((sum, item) => sum + item.amount, 0));
+    const remainingAmount = Math.round(config.maxTotal - totalAmount);
+    const averageAmount = Math.round(totalAmount / items.length);
     const amounts = items.map((i) => i.amount);
     const minGenerated = Math.min(...amounts);
     const maxGenerated = Math.max(...amounts);
@@ -187,7 +188,7 @@ export function useBudgetStore() {
     if (items.length > 0) {
       if (stats.totalAmount > config.maxTotal) {
         errors.push(
-          `Total generated amount ($${stats.totalAmount.toFixed(2)}) exceeds Maximum Total budget ($${config.maxTotal.toFixed(2)}) by $${(stats.totalAmount - config.maxTotal).toFixed(2)}.`
+          `Total generated amount (${formatCurrency(stats.totalAmount)}) exceeds Maximum Total budget (${formatCurrency(config.maxTotal)}) by ${formatCurrency(stats.totalAmount - config.maxTotal)}.`
         );
       }
 
@@ -197,7 +198,7 @@ export function useBudgetStore() {
 
       if (outOfBoundsCount > 0) {
         errors.push(
-          `${outOfBoundsCount} day(s) have amounts outside configured Min ($${config.minAmount}) - Max ($${config.maxAmount}) bounds.`
+          `${outOfBoundsCount} day(s) have amounts outside configured Min (${formatCurrency(config.minAmount)}) - Max (${formatCurrency(config.maxAmount)}) bounds.`
         );
       }
     }

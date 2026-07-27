@@ -19,23 +19,24 @@ export function InlineEditCell({
   maxAmount,
   onSave,
 }: InlineEditCellProps) {
-  const [localVal, setLocalVal] = useState<string>(value.toString());
+  const [localVal, setLocalVal] = useState<string>(Math.round(value).toString());
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    setLocalVal(value.toString());
+    setLocalVal(Math.round(value).toString());
   }, [value]);
 
-  const numVal = parseFloat(localVal);
+  const numVal = parseInt(localVal, 10);
   const isOutOfBounds = !isNaN(numVal) && (numVal < minAmount || numVal > maxAmount);
 
   const handleBlur = () => {
     setIsEditing(false);
-    const parsed = parseFloat(localVal);
+    const parsed = parseInt(localVal, 10);
     if (!isNaN(parsed) && parsed >= 0) {
-      onSave(rowIndex, Math.round(parsed * 100) / 100);
+      onSave(rowIndex, Math.round(parsed));
+      setLocalVal(Math.round(parsed).toString());
     } else {
-      setLocalVal(value.toString());
+      setLocalVal(Math.round(value).toString());
     }
   };
 
@@ -43,7 +44,7 @@ export function InlineEditCell({
     if (e.key === "Enter") {
       handleBlur();
     } else if (e.key === "Escape") {
-      setLocalVal(value.toString());
+      setLocalVal(Math.round(value).toString());
       setIsEditing(false);
     }
   };
@@ -52,14 +53,14 @@ export function InlineEditCell({
     <div className="relative flex items-center justify-end">
       <Input
         type="number"
-        step="0.01"
+        step="1"
         value={localVal}
         onFocus={() => setIsEditing(true)}
         onChange={(e) => {
           setLocalVal(e.target.value);
-          const parsed = parseFloat(e.target.value);
+          const parsed = parseInt(e.target.value, 10);
           if (!isNaN(parsed) && parsed >= 0) {
-            onSave(rowIndex, Math.round(parsed * 100) / 100);
+            onSave(rowIndex, Math.round(parsed));
           }
         }}
         onBlur={handleBlur}

@@ -45,15 +45,15 @@ export function HistoryItem({ record, onReload, onDelete }: HistoryItemProps) {
         </div>
         <div>
           <span className="block text-[10px] uppercase">Min</span>
-          <span className="font-semibold text-foreground">${record.config.minAmount}</span>
+          <span className="font-semibold text-foreground">{formatCurrency(record.config.minAmount)}</span>
         </div>
         <div>
           <span className="block text-[10px] uppercase">Max</span>
-          <span className="font-semibold text-foreground">${record.config.maxAmount}</span>
+          <span className="font-semibold text-foreground">{formatCurrency(record.config.maxAmount)}</span>
         </div>
         <div>
           <span className="block text-[10px] uppercase">Max Total</span>
-          <span className="font-semibold text-foreground">${record.config.maxTotal}</span>
+          <span className="font-semibold text-foreground">{formatCurrency(record.config.maxTotal)}</span>
         </div>
       </div>
 
